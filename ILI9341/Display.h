@@ -34,6 +34,9 @@ THE SOFTWARE.
 #include <Display_const.h>
 #include "stm32f4xx_hal.h"
 
+/*	defines how large is bufer containing color for function DisplayDrawColorBlock	*/
+#define COLOR_BLOCK_BUFFER 500
+
 typedef enum {vertical_1, horizontal_1, vertical_2, horizontal_2} display_orientation;
 
 typedef struct

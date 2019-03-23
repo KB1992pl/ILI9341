@@ -32,8 +32,44 @@ THE SOFTWARE.
 #include <Display.h>
 #include <Display_const.h>
 #include "pins_def.h"
+#include "spi.h"
 
 DisplayInfo info;
+
+/*
+ * Swaps two variables
+ * TBD: make it as a macro ?
+ */
+static void swap(uint16_t * data1, uint16_t* data2)
+{
+	uint16_t temp = *data1;
+	*data1=*data2;
+	*data2=temp;
+}
+
+/* defines area of memory to write into.
+ * Both of commands below should be invoked
+ * to prepare valid frame to write images.
+ */
+inline static void DisplaySetColumnAddress(uint16_t X1, uint16_t X2)
+{
+	if (X1>X2)
+	{
+		swap(&X1, &X2);
+	}
+	uint8_t tempBuffer[] = {X1>>8, X1, X2>>8, X2};
+	SpiTransmitBlock(DISPLAY_COMMAND_COL_ADDR_SET, tempBuffer, COORDINATES_BUFFER_SIZE);
+}
+
+inline static void DisplaySetRowAddress(uint16_t Y1, uint16_t Y2)
+{
+	if (Y1>Y2)
+	{
+		swap(&Y1,&Y2);
+	}
+	uint8_t tempBuffer[] = {Y1>>8, Y1, Y2>>8, Y2};
+	SpiTransmitBlock(DISPLAY_COMMAND_PAGE_ADDR_SET, tempBuffer, COORDINATES_BUFFER_SIZE);
+}
 
 void DisplayHardwareReset()
 {
@@ -112,18 +148,8 @@ void DisplayFillScreen(uint16_t color)
 
 void DisplaySetDrawBlock(uint16_t X1, uint16_t X2, uint16_t Y1, uint16_t Y2)
 {
-	SpiSendCommandByte(DISPLAY_COMMAND_COL_ADDR_SET);
-	SpiSendDataByte(X1>>8);
-	SpiSendDataByte(X1);
-	SpiSendDataByte(X2>>8);
-	SpiSendDataByte(X2);
-
-	SpiSendCommandByte(DISPLAY_COMMAND_PAGE_ADDR_SET);
-	SpiSendDataByte(Y1>>8);
-	SpiSendDataByte(Y1);
-	SpiSendDataByte(Y2>>8);
-	SpiSendDataByte(Y2);
-
+	DisplaySetColumnAddress(X1,X2);
+	DisplaySetRowAddress(Y1,Y2);
 	SpiSendCommandByte(DISPLAY_COMMAND_MEMORY_WRITE);
 
 }
@@ -131,31 +157,25 @@ void DisplayDrawPixel(uint16_t X, uint16_t Y, uint16_t color)
 {
 	//X data
 	{
-	SpiSendCommandByte(DISPLAY_COMMAND_COL_ADDR_SET);
 	uint8_t tempBuffer[COORDINATES_BUFFER_SIZE] = {X>>8, X, (X+1)>>8, (X+1)};
-	SpiSendDataBuffer(tempBuffer, COORDINATES_BUFFER_SIZE);
+	SpiTransmitBlock(DISPLAY_COMMAND_COL_ADDR_SET, tempBuffer, COORDINATES_BUFFER_SIZE);
 	}
 	//Y data
 	{
-		SpiSendCommandByte(DISPLAY_COMMAND_PAGE_ADDR_SET);
 		uint8_t tempBuffer[COORDINATES_BUFFER_SIZE] = {Y>>8, Y, (Y+1)>>8, (Y+1)};
-		SpiSendDataBuffer(tempBuffer, COORDINATES_BUFFER_SIZE);
+		SpiTransmitBlock(DISPLAY_COMMAND_PAGE_ADDR_SET, tempBuffer, COORDINATES_BUFFER_SIZE);
 	}
 	//Color data
 	{
-		SpiSendCommandByte(DISPLAY_COMMAND_MEMORY_WRITE);
 		uint8_t colorBuffer[COLOR_BUFFER_SIZE] = {color>>8, color};
-		SpiSendDataBuffer(colorBuffer, COLOR_BUFFER_SIZE);
+		SpiTransmitBlock(DISPLAY_COMMAND_MEMORY_WRITE, colorBuffer, COLOR_BUFFER_SIZE);
 	}
 }
 
 void DisplayDrawColorBlock(uint16_t color, uint32_t size)
 {
 	uint8_t colorBuffer[COLOR_BUFFER_SIZE] = {color>>8, color};
-	for (uint32_t i = 0; i< size*2;i++)
-	{
-		SpiSendDataBuffer(colorBuffer,COLOR_BUFFER_SIZE);
-	}
+	SpiSendDataRepeated(colorBuffer,COLOR_BUFFER_SIZE,size);
 }
 
 void DisplayDrawImageBlock(uint8_t * buffer, uint16_t bufferSize)
