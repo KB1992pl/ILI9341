@@ -33,10 +33,20 @@ THE SOFTWARE.
 
 #define SPI_TIMEOUT 10
 
+/*	Define FAST_SPI allows to override sending functions, but
+ * 	they return no error codes. FAST_SPI only sends data and waits
+ * 	until SPI is ready to send new data. Comment this define to
+ * 	use standard HAL_SPI functions.
+ */
+#define FAST_SPI
+
 #define DC_PIN_SET		HAL_GPIO_WritePin(LCD_DC_GPIO_Port,LCD_DC_Pin,GPIO_PIN_SET)
 #define DC_PIN_RESET	HAL_GPIO_WritePin(LCD_DC_GPIO_Port,LCD_DC_Pin,GPIO_PIN_RESET)
 #define CS_PIN_SET		HAL_GPIO_WritePin(LCD_CS_GPIO_Port,LCD_CS_Pin,GPIO_PIN_SET)
 #define CS_PIN_RESET	HAL_GPIO_WritePin(LCD_CS_GPIO_Port,LCD_CS_Pin,GPIO_PIN_RESET)
+
+/*	Inits SPI1 instance	*/
+void Spi1Init();
 
 /*	Sends byte of data. Function also sets CS and DC bits	*/
 void SpiSendDataByte(uint8_t data);
@@ -45,10 +55,15 @@ void SpiSendDataByte(uint8_t data);
 void SpiSendCommandByte(uint8_t command);
 
 /*	Sends "size" bytes of data. Function also sets CS and DC bits	*/
-void SpiSendDataBuffer(uint8_t * data, uint16_t size);
+void SpiSendDataBuffer(uint8_t * data, uint32_t bufferSize);
+
+/*	works similar to SpiSendDataBuffer, but repeats sending buffer before
+ * 	setting CS bit. Recommended for drawing big surfaces with one color
+ */
+void SpiSendDataRepeated(uint8_t * data, uint32_t bufferSize, uint32_t repeats);
 
 /*	Sends "size" bytes via SPI. Funcion DOESN'T set CS and DC bits	*/
-void SpiTransmit(uint8_t * data, uint32_t size);
+void SpiTransmit(uint8_t * data, uint32_t bufferSize);
 
 /*	Sends command and "dataBufferSize" of data. Function also sets CS and DC bits	*/
 void SpiTransmitBlock(uint8_t command, uint8_t *dataBuffer, uint32_t dataBufferSize);
